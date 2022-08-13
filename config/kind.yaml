@@ -1,0 +1,34 @@
+---
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+kubeadmConfigPatches:
+  - |
+    apiVersion: kubeadm.k8s.io/v1beta3
+    kind: InitConfiguration
+    metadata:
+      name: init-config
+    skipPhases:
+      - addon/kube-proxy
+      - kube-proxy
+  - |
+    apiVersion: kubeadm.k8s.io/v1beta3
+    kind: ClusterConfiguration
+    metadata:
+      name: cluster-config
+    networking:
+      podSubnet: 192.168.0.0/16
+networking:
+  apiServerAddress: 127.0.0.1
+  disableDefaultCNI: true
+nodes:
+  - role: control-plane
+  - role: worker
+    extraPortMappings:
+      - containerPort: 80
+        hostPort: 80
+        protocol: TCP
+        listenAddress: "0.0.0.0"
+      - containerPort: 443
+        hostPort: 443
+        protocol: TCP
+        listenAddress: "0.0.0.0"
