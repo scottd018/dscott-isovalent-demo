@@ -8,14 +8,51 @@ grpcurl:
 #
 # cluster
 #
-CLUSTER_NAME ?= isovalent
-deploy-cluster:
-	@kind create cluster \
-		--name $(CLUSTER_NAME) \
-		--config config/kind.yaml
+CLUSTER_PREFIX ?= isovalent-
+deploy-ingress-cluster:
+	@CLUSTER_NAME=$(CLUSTER_PREFIX)ingress CLUSTER_ID=3 CONFIG=config/kind-ingress-cluster.yaml scripts/deploy-cluster.sh
 
-delete-cluster:
-	@kind delete cluster --name $(CLUSTER_NAME)
+deploy-mesh-cluster-1:
+	@CLUSTER_NAME=$(CLUSTER_PREFIX)mesh-1 CLUSTER_ID=1 CONFIG=config/kind-mesh-cluster-1.yaml scripts/deploy-cluster.sh
+
+deploy-mesh-cluster-2:
+	@CLUSTER_NAME=$(CLUSTER_PREFIX)mesh-2 CLUSTER_ID=2 CONFIG=config/kind-mesh-cluster-2.yaml scripts/deploy-cluster.sh
+
+delete-ingress-cluster:
+	@kind delete cluster --name $(CLUSTER_PREFIX)ingress
+	@docker network rm $(CLUSTER_PREFIX)ingress
+
+delete-mesh-cluster-1:
+	@kind delete cluster --name $(CLUSTER_PREFIX)mesh-1
+	@docker network rm $(CLUSTER_PREFIX)mesh-1
+
+delete-mesh-cluster-2:
+	@kind delete cluster --name $(CLUSTER_PREFIX)mesh-2
+	@docker network rm $(CLUSTER_PREFIX)mesh-2
+
+#
+# kube-proxy
+#   as per https://docs.cilium.io/en/v1.12/gettingstarted/kubeproxy-free/#kubeproxy-free the existing implementation
+#   of kube-proxy needs to be removed so that cilium can serve service traffic for the cluster
+#
+# DEPRECATED: now using the kubeProxyMode=none to deploy the kind cluster which disabled kube-proxy out of the box
+config-kube-proxy:
+	@scripts/config-kube-proxy.sh
+
+#
+# cilium
+#
+deploy-cilium:
+	@CLUSTER_NAME=$(CLUSTER_PREFIX)ingress CLUSTER_ID=3 scripts/deploy-cilium.sh
+
+deploy-cilium-mesh-1:
+	@CLUSTER_NAME=$(CLUSTER_PREFIX)mesh-1 CLUSTER_ID=1 scripts/deploy-cilium.sh
+
+deploy-cilium-mesh-2:
+	@CLUSTER_NAME=$(CLUSTER_PREFIX)mesh-2 CLUSTER_ID=2 CA_CLUSTER_CONTEXT=kind-$(CLUSTER_PREFIX)mesh-1 scripts/deploy-cilium.sh
+
+delete-cilium:
+	@cilium uninstall
 
 #
 # load-balancer
@@ -35,23 +72,6 @@ delete-load-balancer:
 		-f https://raw.githubusercontent.com/metallb/metallb/v0.12.1/manifests/namespace.yaml \
 		-f config/metallb.yaml \
 		-f https://raw.githubusercontent.com/metallb/metallb/v0.12.1/manifests/metallb.yaml
-
-#
-# kube-proxy
-#   as per https://docs.cilium.io/en/v1.12/gettingstarted/kubeproxy-free/#kubeproxy-free the existing implementation
-#   of kube-proxy needs to be removed so that cilium can serve service traffic for the cluster
-#
-config-kube-proxy:
-	@scripts/config-kube-proxy.sh
-
-#
-# cilium
-#
-deploy-cilium:
-	@scripts/deploy-cilium.sh
-
-delete-cilium:
-	@helm uninstall cilium -n kube-system
 
 #
 # examples
