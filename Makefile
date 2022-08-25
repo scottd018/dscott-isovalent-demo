@@ -9,26 +9,19 @@ grpcurl:
 # cluster
 #
 CLUSTER_PREFIX ?= isovalent-
-deploy-ingress-cluster:
-	@CLUSTER_NAME=$(CLUSTER_PREFIX)ingress CLUSTER_ID=3 CONFIG=config/kind-ingress-cluster.yaml scripts/deploy-cluster.sh
+deploy-cluster-1:
+	@CLUSTER_NAME=$(CLUSTER_PREFIX)1 CLUSTER_ID=1 CONFIG=config/kind-cluster-1.yaml scripts/deploy-cluster.sh
 
-deploy-mesh-cluster-1:
-	@CLUSTER_NAME=$(CLUSTER_PREFIX)mesh-1 CLUSTER_ID=1 CONFIG=config/kind-mesh-cluster-1.yaml scripts/deploy-cluster.sh
+deploy-cluster-2:
+	@CLUSTER_NAME=$(CLUSTER_PREFIX)2 CLUSTER_ID=2 CONFIG=config/kind-cluster-2.yaml scripts/deploy-cluster.sh
 
-deploy-mesh-cluster-2:
-	@CLUSTER_NAME=$(CLUSTER_PREFIX)mesh-2 CLUSTER_ID=2 CONFIG=config/kind-mesh-cluster-2.yaml scripts/deploy-cluster.sh
+delete-cluster-1:
+	@kind delete cluster --name $(CLUSTER_PREFIX)1
+	@docker network rm $(CLUSTER_PREFIX)1
 
-delete-ingress-cluster:
-	@kind delete cluster --name $(CLUSTER_PREFIX)ingress
-	@docker network rm $(CLUSTER_PREFIX)ingress
-
-delete-mesh-cluster-1:
-	@kind delete cluster --name $(CLUSTER_PREFIX)mesh-1
-	@docker network rm $(CLUSTER_PREFIX)mesh-1
-
-delete-mesh-cluster-2:
-	@kind delete cluster --name $(CLUSTER_PREFIX)mesh-2
-	@docker network rm $(CLUSTER_PREFIX)mesh-2
+delete-cluster-2:
+	@kind delete cluster --name $(CLUSTER_PREFIX)2
+	@docker network rm $(CLUSTER_PREFIX)2
 
 #
 # kube-proxy
@@ -42,14 +35,11 @@ config-kube-proxy:
 #
 # cilium
 #
-deploy-cilium:
-	@CLUSTER_NAME=$(CLUSTER_PREFIX)ingress CLUSTER_ID=3 scripts/deploy-cilium.sh
+deploy-cilium-cluster-1:
+	@CLUSTER_NAME=$(CLUSTER_PREFIX)1 CLUSTER_ID=1 scripts/deploy-cilium.sh
 
-deploy-cilium-mesh-1:
-	@CLUSTER_NAME=$(CLUSTER_PREFIX)mesh-1 CLUSTER_ID=1 scripts/deploy-cilium.sh
-
-deploy-cilium-mesh-2:
-	@CLUSTER_NAME=$(CLUSTER_PREFIX)mesh-2 CLUSTER_ID=2 CA_CLUSTER_CONTEXT=kind-$(CLUSTER_PREFIX)mesh-1 scripts/deploy-cilium.sh
+deploy-cilium-cluster-2:
+	@CLUSTER_NAME=$(CLUSTER_PREFIX)2 CLUSTER_ID=2 CA_CLUSTER_CONTEXT=kind-$(CLUSTER_PREFIX)1 scripts/deploy-cilium.sh
 
 delete-cilium:
 	@cilium uninstall
@@ -61,16 +51,22 @@ delete-cilium:
 #
 #   NOTE: in a real production environment we would likely rely on the cloud provider load balancer to satisfy this.
 #
-deploy-load-balancer:
+deploy-load-balancer-cluster-1:
 	@kubectl apply \
 		-f https://raw.githubusercontent.com/metallb/metallb/v0.12.1/manifests/namespace.yaml \
-		-f config/metallb.yaml \
+		-f config/metallb-cluster-1.yaml \
+		-f https://raw.githubusercontent.com/metallb/metallb/v0.12.1/manifests/metallb.yaml
+
+deploy-load-balancer-cluster-2:
+	@kubectl apply \
+		-f https://raw.githubusercontent.com/metallb/metallb/v0.12.1/manifests/namespace.yaml \
+		-f config/metallb-cluster-2.yaml \
 		-f https://raw.githubusercontent.com/metallb/metallb/v0.12.1/manifests/metallb.yaml
 
 delete-load-balancer:
 	@kubectl delete \
 		-f https://raw.githubusercontent.com/metallb/metallb/v0.12.1/manifests/namespace.yaml \
-		-f config/metallb.yaml \
+		-f config/metallb-cluster-1.yaml \
 		-f https://raw.githubusercontent.com/metallb/metallb/v0.12.1/manifests/metallb.yaml
 
 #

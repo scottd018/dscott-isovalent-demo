@@ -16,13 +16,10 @@ INSTALL_OPTIONS="
     --helm-set cluster.name=${CLUSTER_NAME}
     --helm-set k8sServiceHost=${API_SERVER_IP}
     --helm-set k8sServicePort=${API_SERVER_PORT}
+    --helm-set kubeProxyReplacement=strict
+    --helm-set ingressController.enabled=true
     --version ${VERSION}
 "
-
-if [[ "${INGRESS_CLUSTER}" == "true" ]]; then
-    INSTALL_OPTIONS+=" --helm-set kubeProxyReplacement=strict"
-    INSTALL_OPTIONS+=" --helm-set ingressController.enabled=true"
-fi
 
 if [[ -n "${CA_CLUSTER_CONTEXT}" ]]; then
     INSTALL_OPTIONS+=" --inherit-ca ${CA_CLUSTER_CONTEXT}"
